@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Registro de Jornada Laboral</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-24 md:pb-10 min-h-screen">
+
+    <!-- Header / Navbar Principal -->
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-brand-900 text-white pt-6 pb-12 px-4 shadow-lg rounded-b-[2rem]">
+        <div class="max-w-md mx-auto">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <!-- Dynamic Header Avatar -->
+                    <div id="headerAvatarBox" class="w-12 h-12 rounded-2xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-brand-500 text-xl font-bold overflow-hidden shrink-0">
+                        <img id="headerAvatarImg" class="w-full h-full object-cover hidden" alt="Avatar">
+                        <i id="headerAvatarIcon" class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h1 id="headerUserName" class="font-bold text-lg leading-tight">Cargando...</h1>
+                        <p id="headerUserRole" class="text-xs text-slate-300">Puesto • Empresa</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('settings')" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                    <i class="fa-solid fa-sliders text-white"></i>
+                </button>
+            </div>
+
+            <!-- Target Contract Banner -->
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-briefcase text-brand-500"></i>
+                    <span class="text-slate-200">Jornada Contratada:</span>
+                </div>
+                <span id="headerTargetHours" class="font-bold text-brand-500 text-sm">9h / semana</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto px-4 -mt-6">
+
+        <!-- TAB 1: FICHAR / REGISTRO -->
+        <section id="tab-clock" class="tab-content space-y-4">
+            
+            <!-- Live Timer Card -->
+            <div class="glass-card rounded-3xl p-6 shadow-xl text-center relative overflow-hidden">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100 text-xs font-semibold text-slate-600 mb-4">
+                    <span id="liveStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    <span id="liveStatusText">Fuera de Jornada</span>
+                </div>
+
+                <div id="timerDisplay" class="text-5xl font-extrabold tracking-tight text-slate-800 my-2 font-mono">
+                    00:00:00
+                </div>
+                <p id="timerSubtext" class="text-xs text-slate-600 mb-6">Pulsa para iniciar el registro en vivo</p>
+
+                <!-- Actions -->
+                <div class="grid grid-cols-1 gap-3">
+                    <button id="btnStartWork" onclick="toggleWorkSession()" class="w-full py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-brand-600 to-brand-500 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 active:scale-[0.98] transition flex items-center justify-center space-x-3 text-base">
+                        <i class="fa-solid fa-play"></i>
+                        <span>INICIAR JORNADA</span>
+                    </button>
+
+                    <div id="activeControls" class="hidden grid grid-cols-2 gap-3">
+                        <button onclick="pauseWorkSession()" id="btnPauseWork" class="py-3 px-4 rounded-xl font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-pause"></i>
+                            <span id="pauseBtnText">Pausa</span>
+                        </button>
+                        <button onclick="promptFinishWork()" class="py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-red-500 to-red-600 shadow-md shadow-red-500/20 hover:bg-red-700 active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-stop"></i>
+                            <span>FINALIZAR</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Registration Toggle -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                        <i class="fa-regular fa-pen-to-square text-brand-600"></i>
+                        <span>Registro Manual Directo</span>
+                    </h3>
+                    <span class="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium">Añade o edita días</span>
+                </div>
+                
+                <form id="manualEntryForm" onsubmit="handleManualSubmit(event)" class="space-y-3">
+                    <input type="hidden" id="editEntryId" value="">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Fecha</label>
+                        <input type="date" id="manualDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Hora Inicio</label>
+                            <input type="time" id="manualStartTime" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Hora Fin</label>
+                            <input type="time" id="manualEndTime" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Pausa (Minutos)</label>
+                            <input type="number" id="manualPause" min="0" value="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Horas Calculadas</label>
+                            <div id="manualCalcPreview" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700">
+                                0h 0m
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Comentario / Nota del día</label>
+                        <input type="text" id="manualNotes" placeholder="Ej: Visita cliente, Horas extra autorizadas..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <div class="flex space-x-2 pt-1">
+                        <button type="submit" id="btnSaveManual" class="flex-1 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span id="lblSaveManual">Guardar Registro</span>
+                        </button>
+                        <button type="button" id="btnCancelEdit" onclick="resetManualForm()" class="hidden py-2.5 px-4 rounded-xl bg-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-300">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: RESUMEN / BALANCE -->
+        <section id="tab-summary" class="tab-content hidden space-y-4">
+            <!-- Weekly Balance Hero Card -->
+            <div id="weeklyBalanceCard" class="glass-card rounded-3xl p-6 shadow-md transition-all">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Balance Semana Actual</span>
+                    <span id="weeklyBadge" class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800">
+                        +0.0h
+                    </span>
+                </div>
+
+                <div class="flex items-baseline space-x-2 my-2">
+                    <span id="weeklyHoursWorked" class="text-4xl font-extrabold text-slate-800">0.0h</span>
+                    <span class="text-sm text-slate-600 font-medium">/ <span id="weeklyHoursTarget">9.0</span>h contratadas</span>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden my-3">
+                    <div id="weeklyProgressBar" class="bg-brand-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+
+                <div id="weeklyStatusText" class="text-xs text-slate-600 flex items-center space-x-1 font-medium">
+                    <i class="fa-solid fa-circle-info text-brand-600"></i>
+                    <span>Cargando balance...</span>
+                </div>
+            </div>
+
+            <!-- Month & Overall Stats Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass-card p-4 rounded-2xl">
+                    <div class="flex items-center space-x-2 text-slate-600 text-xs mb-1">
+                        <i class="fa-solid fa-calendar-days text-brand-600"></i>
+                        <span>Mes Actual</span>
+                    </div>
+                    <div id="statMonthWorked" class="text-xl font-bold text-slate-800">0.0h</div>
+                    <div id="statMonthBalance" class="text-[11px] font-semibold text-slate-600 mt-1">
+                        Balance: 0.0h
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl">
+                    <div class="flex items-center space-x-2 text-slate-600 text-xs mb-1">
+                        <i class="fa-solid fa-chart-pie text-slate-600"></i>
+                        <span>Días Trabajados</span>
+                    </div>
+                    <div id="statDaysCount" class="text-xl font-bold text-slate-800">0 días</div>
+                    <div class="text-[11px] text-slate-600 font-medium mt-1">En el historial</div>
+                </div>
+            </div>
+
+            <!-- Visual Hours Summary Card -->
+            <div class="glass-card rounded-2xl p-5">
+                <h3 class="font-bold text-slate-800 text-sm mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-layer-group text-brand-600"></i>
+                    <span>Desglose por Semanas del Mes</span>
+                </h3>
+                <div id="weeksBreakdownList" class="space-y-3">
+                    <!-- Dynamic List -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: INFORMES (NUEVO MÓDULO) -->
+        <section id="tab-reports" class="tab-content hidden space-y-4">
+            <!-- Report Type Sub-Navigation -->
+            <div class="glass-card rounded-2xl p-1.5 flex space-x-1 shadow-sm">
+                <button onclick="switchReportSubTab('weekly')" id="rptBtn-weekly" class="flex-1 py-2 text-xs font-bold rounded-xl transition bg-slate-900 text-white">Semanal</button>
+                <button onclick="switchReportSubTab('monthly')" id="rptBtn-monthly" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500 hover:bg-slate-100">Mensual</button>
+                <button onclick="switchReportSubTab('annual')" id="rptBtn-annual" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500 hover:bg-slate-100">Anual</button>
+            </div>
+
+            <!-- Report Card Container -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                
+                <!-- Period Controls / Selectors -->
+                <div id="reportControlsArea" class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <!-- Dynamic Controls inserted by JS -->
+                </div>
+
+                <!-- Report Render Output -->
+                <div id="reportOutputArea" class="space-y-3 min-h-[180px]">
+                    <!-- Dynamic Content -->
+                </div>
+
+                <!-- Action Buttons: Share WhatsApp & Copy Text -->
+                <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                    <button onclick="shareActiveReportWhatsApp()" class="py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-brands fa-whatsapp text-base"></i>
+                        <span>Enviar WhatsApp</span>
+                    </button>
+                    <button onclick="copyActiveReportToClipboard()" class="py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-regular fa-copy text-base"></i>
+                        <span>Copiar Texto</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: HISTORIAL -->
+        <section id="tab-history" class="tab-content hidden space-y-4">
+            <!-- Search & Filters -->
+            <div class="glass-card rounded-2xl p-3 flex items-center space-x-2 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass text-slate-600 text-sm pl-2"></i>
+                <input type="text" id="historySearch" oninput="renderHistory()" placeholder="Buscar por comentario o día..." class="w-full bg-transparent text-sm focus:outline-none">
+            </div>
+
+            <!-- History List Container -->
+            <div id="historyList" class="space-y-3">
+                <!-- Dynamic Items -->
+            </div>
+        </section>
+
+        <!-- TAB 5: AJUSTES Y BACKUP -->
+        <section id="tab-settings" class="tab-content hidden space-y-4">
+            <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-user-gear text-brand-600"></i>
+                    <span>Configuración Personal</span>
+                </h3>
+
+                <!-- Custom Avatar Settings -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-2">Foto de Perfil / Avatar</label>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                            <img id="cfgAvatarPreview" class="w-full h-full object-cover hidden" alt="Vista previa">
+                            <i id="cfgAvatarIcon" class="fa-solid fa-user text-slate-400 text-2xl"></i>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <label class="block cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl text-center border border-slate-200 transition">
+                                <i class="fa-solid fa-camera mr-1 text-brand-600"></i> Cambiar Imagen
+                                <input type="file" accept="image/*" onchange="handleAvatarUpload(event)" class="hidden">
+                            </label>
+                            <button type="button" onclick="removeAvatar()" class="text-[11px] text-red-500 hover:text-red-700 font-semibold block transition">
+                                <i class="fa-solid fa-trash mr-1"></i> Eliminar foto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" id="cfgUserName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Puesto de Trabajo</label>
+                        <input type="text" id="cfgUserRole" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Empresa</label>
+                        <input type="text" id="cfgUserCompany" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Horas Contratadas por Semana</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="number" id="cfgTargetHours" min="1" max="100" step="0.5" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:border-brand-500">
+                        <span class="text-sm text-slate-500 font-semibold">horas</span>
+                    </div>
+                </div>
+
+                <button onclick="saveProfileSettings()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Guardar Cambios</span>
+                </button>
+            </div>
+
+            <!-- Export / Backup Card -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-database text-brand-600"></i>
+                    <span>Copias de Seguridad (JSON)</span>
+                </h3>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="exportBackupJSON()" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition flex items-center justify-center space-x-1.5 border border-slate-200">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Exportar JSON</span>
+                    </button>
+                    
+                    <label class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition flex items-center justify-center space-x-1.5 border border-slate-200 cursor-pointer text-center">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Restaurar JSON</span>
+                        <input type="file" accept=".json" onchange="importBackupJSON(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobile Native Style) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-2 px-2 z-40">
+        <div class="max-w-md mx-auto grid grid-cols-5 gap-0.5">
+            <button onclick="switchTab('clock')" id="nav-clock" class="nav-btn flex flex-col items-center justify-center py-1 text-brand-600 font-bold">
+                <i class="fa-solid fa-stopwatch text-base mb-0.5"></i>
+                <span class="text-[9px]">Fichar</span>
+            </button>
+            <button onclick="switchTab('summary')" id="nav-summary" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 font-medium">
+                <i class="fa-solid fa-chart-simple text-base mb-0.5"></i>
+                <span class="text-[9px]">Resumen</span>
+            </button>
+            <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 font-medium">
+                <i class="fa-solid fa-file-lines text-base mb-0.5"></i>
+                <span class="text-[9px]">Informes</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 font-medium">
+                <i class="fa-solid fa-list-check text-base mb-0.5"></i>
+                <span class="text-[9px]">Historial</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 font-medium">
+                <i class="fa-solid fa-gear text-base mb-0.5"></i>
+                <span class="text-[9px]">Ajustes</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modal: Confirm & Register Workday -->
+    <div id="modalConfirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl transform transition-all space-y-4">
+            <div class="text-center">
+                <div class="w-14 h-14 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-800">¿Registrar jornada actual?</h3>
+                <p class="text-xs text-slate-500">Revisa los datos antes de guardar tu fichaje final.</p>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-4 space-y-3 text-sm border border-slate-100">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                    <span>Fecha:</span>
+                    <span id="modalDateStr" class="font-bold text-slate-700">--/--/----</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-white p-2 rounded-xl border border-slate-200">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold block">Inicio</span>
+                        <span id="modalStartTimeStr" class="font-extrabold text-slate-800 text-base">00:00</span>
+                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold block">Fin</span>
+                        <span id="modalEndTimeStr" class="font-extrabold text-slate-800 text-base">00:00</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ajustar minutos de pausa</label>
+                    <input type="number" id="modalPauseInput" value="0" min="0" oninput="recalcModalDuration()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-center font-bold">
+                </div>
+
+                <div class="bg-brand-50 text-brand-800 rounded-xl p-2.5 text-center font-bold text-sm">
+                    Total Trabajado: <span id="modalTotalHoursStr">0h 0m</span>
+                </div>
+
+                <div>
+                    <input type="text" id="modalNotesInput" placeholder="Añadir comentario o nota..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="confirmAndSaveSession()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>CONFIRMAR Y REGISTRAR</span>
+                </button>
+                <button onclick="closeModalConfirm()" class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold text-xs transition">
+                    Cancelar / Volver
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Storage Keys
+        const STORAGE_KEY_LOGS = 'work_logs_v1';
+        const STORAGE_KEY_USER = 'work_user_v1';
+        const STORAGE_KEY_ACTIVE = 'work_active_v1';
+
+        let userState = {
+            name: 'Tu Nombre',
+            role: 'Tu Puesto',
+            company: 'Tu Empresa',
+            targetWeeklyHours: 9.0,
+            avatar: null // Base64 String
+        };
+
+        let activeSession = null;
+        let timerInterval = null;
+        let logs = [];
+        let currentReportSubTab = 'weekly'; // 'weekly', 'monthly', 'annual'
+        let selectedReportDate = new Date();
+
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+        // Sample Data
+        const sampleLogs = [
+            {
+                id: 'demo-1',
+                date: getRelativeDateStr(0),
+                startTime: '09:00',
+                endTime: '13:30',
+                pauseMinutes: 0,
+                durationHours: 4.5,
+                notes: 'Jornada habitual'
+            },
+            {
+                id: 'demo-2',
+                date: getRelativeDateStr(-2),
+                startTime: '09:00',
+                endTime: '14:00',
+                pauseMinutes: 30,
+                durationHours: 4.5,
+                notes: 'Pausa café incluida'
+            }
+        ];
+
+        function getRelativeDateStr(offsetDays) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserData();
+            loadLogs();
+            loadActiveSession();
+            initFormDefaults();
+            updateAllViews();
+
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        });
+
+        function loadUserData() {
+            const saved = localStorage.getItem(STORAGE_KEY_USER);
+            if (saved) {
+                userState = JSON.parse(saved);
+            }
+            // Header Text
+            document.getElementById('headerUserName').textContent = userState.name || 'Tu Nombre';
+            document.getElementById('headerUserRole').textContent = `${userState.role || 'Puesto'} • ${userState.company || 'Empresa'}`;
+            document.getElementById('headerTargetHours').textContent = `${userState.targetWeeklyHours || 9}h / semana`;
+
+            // Config Form Inputs
+            document.getElementById('cfgUserName').value = userState.name || '';
+            document.getElementById('cfgUserRole').value = userState.role || '';
+            document.getElementById('cfgUserCompany').value = userState.company || '';
+            document.getElementById('cfgTargetHours').value = userState.targetWeeklyHours || 9;
+
+            // Avatar Rendering
+            renderHeaderAvatar();
+        }
+
+        function renderHeaderAvatar() {
+            const headerImg = document.getElementById('headerAvatarImg');
+            const headerIcon = document.getElementById('headerAvatarIcon');
+            const previewImg = document.getElementById('cfgAvatarPreview');
+            const previewIcon = document.getElementById('cfgAvatarIcon');
+
+            if (userState.avatar) {
+                headerImg.src = userState.avatar;
+                headerImg.classList.remove('hidden');
+                headerIcon.classList.add('hidden');
+
+                previewImg.src = userState.avatar;
+                previewImg.classList.remove('hidden');
+                previewIcon.classList.add('hidden');
+            } else {
+                headerImg.classList.add('hidden');
+                headerIcon.classList.remove('hidden');
+
+                previewImg.classList.add('hidden');
+                previewIcon.classList.remove('hidden');
+            }
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Canvas Compression
+                    const canvas = document.createElement('canvas');
+                    const MAX = 250;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX) { height *= MAX / width; width = MAX; }
+                    } else {
+                        if (height > MAX) { width *= MAX / height; height = MAX; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    userState.avatar = canvas.toDataURL('image/jpeg', 0.85);
+                    saveProfileSettingsSilent();
+                    renderHeaderAvatar();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeAvatar() {
+            userState.avatar = null;
+            saveProfileSettingsSilent();
+            renderHeaderAvatar();
+        }
+
+        function saveProfileSettingsSilent() {
+            localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(userState));
+        }
+
+        function saveProfileSettings() {
+            userState.name = document.getElementById('cfgUserName').value.trim() || 'Tu Nombre';
+            userState.role = document.getElementById('cfgUserRole').value.trim() || 'Tu Puesto';
+            userState.company = document.getElementById('cfgUserCompany').value.trim() || 'Empresa';
+            userState.targetWeeklyHours = parseFloat(document.getElementById('cfgTargetHours').value) || 9.0;
+
+            saveProfileSettingsSilent();
+            loadUserData();
+            updateAllViews();
+            alert('¡Configuración guardada correctamente!');
+        }
+
+        function loadLogs() {
+            const saved = localStorage.getItem(STORAGE_KEY_LOGS);
+            if (saved) {
+                logs = JSON.parse(saved);
+            } else {
+                logs = sampleLogs;
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+            }
+        }
+
+        function saveLogs() {
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+            updateAllViews();
+        }
+
+        function loadActiveSession() {
+            const saved = localStorage.getItem(STORAGE_KEY_ACTIVE);
+            if (saved) {
+                activeSession = JSON.parse(saved);
+            }
+            updateTimerUIState();
+        }
+
+        function saveActiveSession() {
+            if (activeSession) {
+                localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeSession));
+            } else {
+                localStorage.removeItem(STORAGE_KEY_ACTIVE);
+            }
+            updateTimerUIState();
+        }
+
+        function initFormDefaults() {
+            document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('manualStartTime').value = '09:00';
+            document.getElementById('manualEndTime').value = '13:30';
+            
+            ['manualStartTime', 'manualEndTime', 'manualPause'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateManualPreview);
+            });
+            updateManualPreview();
+        }
+
+        function updateManualPreview() {
+            const start = document.getElementById('manualStartTime').value;
+            const end = document.getElementById('manualEndTime').value;
+            const pause = parseInt(document.getElementById('manualPause').value) || 0;
+
+            if (start && end) {
+                const dur = calculateDurationInHours(start, end, pause);
+                const hrs = Math.floor(dur);
+                const mins = Math.round((dur - hrs) * 60);
+                document.getElementById('manualCalcPreview').textContent = `${hrs}h ${mins}m (${dur.toFixed(2)}h)`;
+            }
+        }
+
+        // Live Timer Controls
+        function toggleWorkSession() {
+            if (!activeSession) {
+                activeSession = {
+                    startTimeISO: new Date().toISOString(),
+                    isPaused: false,
+                    accumulatedPauseSeconds: 0,
+                    pauseStartISO: null
+                };
+                saveActiveSession();
+            }
+        }
+
+        function pauseWorkSession() {
+            if (!activeSession) return;
+
+            if (!activeSession.isPaused) {
+                activeSession.isPaused = true;
+                activeSession.pauseStartISO = new Date().toISOString();
+            } else {
+                const pauseDuration = (new Date() - new Date(activeSession.pauseStartISO)) / 1000;
+                activeSession.accumulatedPauseSeconds += pauseDuration;
+                activeSession.isPaused = false;
+                activeSession.pauseStartISO = null;
+            }
+            saveActiveSession();
+        }
+
+        function updateTimerDisplay() {
+            if (!activeSession) {
+                document.getElementById('timerDisplay').textContent = '00:00:00';
+                return;
+            }
+
+            let elapsedSeconds = (new Date() - new Date(activeSession.startTimeISO)) / 1000;
+            let currentPause = activeSession.accumulatedPauseSeconds;
+
+            if (activeSession.isPaused && activeSession.pauseStartISO) {
+                currentPause += (new Date() - new Date(activeSession.pauseStartISO)) / 1000;
+            }
+
+            let netSeconds = Math.max(0, elapsedSeconds - currentPause);
+
+            const hours = Math.floor(netSeconds / 3600);
+            const minutes = Math.floor((netSeconds % 3600) / 60);
+            const seconds = Math.floor(netSeconds % 60);
+
+            document.getElementById('timerDisplay').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateTimerUIState() {
+            const btnStart = document.getElementById('btnStartWork');
+            const activeControls = document.getElementById('activeControls');
+            const statusDot = document.getElementById('liveStatusDot');
+            const statusText = document.getElementById('liveStatusText');
+            const pauseBtnText = document.getElementById('pauseBtnText');
+
+            if (activeSession) {
+                btnStart.classList.add('hidden');
+                activeControls.classList.remove('hidden');
+
+                if (activeSession.isPaused) {
+                    statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse';
+                    statusText.textContent = 'Jornada en Pausa';
+                    pauseBtnText.textContent = 'Reanudar';
+                } else {
+                    statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping';
+                    statusText.textContent = 'Jornada Activa';
+                    pauseBtnText.textContent = 'Pausa';
+                }
+            } else {
+                btnStart.classList.remove('hidden');
+                activeControls.classList.add('hidden');
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+                statusText.textContent = 'Fuera de Jornada';
+            }
+        }
+
+        function promptFinishWork() {
+            if (!activeSession) return;
+
+            const now = new Date();
+            const start = new Date(activeSession.startTimeISO);
+            
+            let totalPauseSec = activeSession.accumulatedPauseSeconds;
+            if (activeSession.isPaused && activeSession.pauseStartISO) {
+                totalPauseSec += (now - new Date(activeSession.pauseStartISO)) / 1000;
+            }
+
+            const pauseMins = Math.round(totalPauseSec / 60);
+
+            document.getElementById('modalDateStr').textContent = start.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+            document.getElementById('modalStartTimeStr').textContent = formatTimeHHMM(start);
+            document.getElementById('modalEndTimeStr').textContent = formatTimeHHMM(now);
+            document.getElementById('modalPauseInput').value = pauseMins;
+            document.getElementById('modalNotesInput').value = '';
+
+            recalcModalDuration();
+            document.getElementById('modalConfirm').classList.remove('hidden');
+        }
+
+        function recalcModalDuration() {
+            const startStr = document.getElementById('modalStartTimeStr').textContent;
+            const endStr = document.getElementById('modalEndTimeStr').textContent;
+            const pauseMins = parseInt(document.getElementById('modalPauseInput').value) || 0;
+
+            const dur = calculateDurationInHours(startStr, endStr, pauseMins);
+            const hrs = Math.floor(dur);
+            const mins = Math.round((dur - hrs) * 60);
+
+            document.getElementById('modalTotalHoursStr').textContent = `${hrs}h ${mins}m (${dur.toFixed(2)}h)`;
+        }
+
+        function closeModalConfirm() {
+            document.getElementById('modalConfirm').classList.add('hidden');
+        }
+
+        function confirmAndSaveSession() {
+            if (!activeSession) return;
+
+            const start = new Date(activeSession.startTimeISO);
+            const now = new Date();
+            const pauseMins = parseInt(document.getElementById('modalPauseInput').value) || 0;
+            const notes = document.getElementById('modalNotesInput').value.trim();
+
+            const startStr = formatTimeHHMM(start);
+            const endStr = formatTimeHHMM(now);
+            const duration = calculateDurationInHours(startStr, endStr, pauseMins);
+
+            const newEntry = {
+                id: 'log-' + Date.now(),
+                date: start.toISOString().split('T')[0],
+                startTime: startStr,
+                endTime: endStr,
+                pauseMinutes: pauseMins,
+                durationHours: parseFloat(duration.toFixed(2)),
+                notes: notes
+            };
+
+            logs.unshift(newEntry);
+            saveLogs();
+
+            activeSession = null;
+            saveActiveSession();
+            closeModalConfirm();
+
+            alert('¡Jornada registrada con éxito!');
+        }
+
+        // Manual Entry Handling
+        function handleManualSubmit(e) {
+            e.preventDefault();
+
+            const editId = document.getElementById('editEntryId').value;
+            const date = document.getElementById('manualDate').value;
+            const startTime = document.getElementById('manualStartTime').value;
+            const endTime = document.getElementById('manualEndTime').value;
+            const pauseMinutes = parseInt(document.getElementById('manualPause').value) || 0;
+            const notes = document.getElementById('manualNotes').value.trim();
+
+            const durationHours = parseFloat(calculateDurationInHours(startTime, endTime, pauseMinutes).toFixed(2));
+
+            if (editId) {
+                const idx = logs.findIndex(l => l.id === editId);
+                if (idx !== -1) {
+                    logs[idx] = { ...logs[idx], date, startTime, endTime, pauseMinutes, durationHours, notes };
+                }
+            } else {
+                const newLog = {
+                    id: 'log-' + Date.now(),
+                    date, startTime, endTime, pauseMinutes, durationHours, notes
+                };
+                logs.unshift(newLog);
+            }
+
+            saveLogs();
+            resetManualForm();
+            alert(editId ? 'Registro actualizado' : 'Registro guardado');
+        }
+
+        function editLogEntry(id) {
+            const item = logs.find(l => l.id === id);
+            if (!item) return;
+
+            document.getElementById('editEntryId').value = item.id;
+            document.getElementById('manualDate').value = item.date;
+            document.getElementById('manualStartTime').value = item.startTime;
+            document.getElementById('manualEndTime').value = item.endTime;
+            document.getElementById('manualPause').value = item.pauseMinutes || 0;
+            document.getElementById('manualNotes').value = item.notes || '';
+
+            document.getElementById('lblSaveManual').textContent = 'Actualizar Registro';
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+            switchTab('clock');
+            updateManualPreview();
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+        }
+
+        function deleteLogEntry(id) {
+            if (confirm('¿Seguro que deseas eliminar este registro de jornada?')) {
+                logs = logs.filter(l => l.id !== id);
+                saveLogs();
+            }
+        }
+
+        function resetManualForm() {
+            document.getElementById('editEntryId').value = '';
+            document.getElementById('manualNotes').value = '';
+            document.getElementById('manualPause').value = '0';
+            document.getElementById('lblSaveManual').textContent = 'Guardar Registro';
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+            updateManualPreview();
+        }
+
+        // Calculations & Utilities
+        function calculateDurationInHours(startTimeStr, endTimeStr, pauseMins = 0) {
+            const [h1, m1] = startTimeStr.split(':').map(Number);
+            const [h2, m2] = endTimeStr.split(':').map(Number);
+
+            let t1 = h1 * 60 + m1;
+            let t2 = h2 * 60 + m2;
+
+            if (t2 < t1) t2 += 24 * 60;
+
+            let netMinutes = t2 - t1 - pauseMins;
+            return Math.max(0, netMinutes / 60);
+        }
+
+        function formatTimeHHMM(dateObj) {
+            return dateObj.toTimeString().substring(0, 5);
+        }
+
+        function getISOWeekDetails(dateStr) {
+            const d = new Date(dateStr);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return { year: d.getFullYear(), week: weekNo };
+        }
+
+        // Global UI Render Sync
+        function updateAllViews() {
+            renderSummary();
+            renderReports();
+            renderHistory();
+        }
+
+        function renderSummary() {
+            const target = userState.targetWeeklyHours || 9.0;
+            document.getElementById('weeklyHoursTarget').textContent = target.toFixed(1);
+
+            const now = new Date();
+            const currentWeekInfo = getISOWeekDetails(now.toISOString().split('T')[0]);
+
+            let thisWeekHours = 0;
+            let thisMonthHours = 0;
+            const currentMonthStr = now.toISOString().substring(0, 7);
+
+            logs.forEach(log => {
+                const logWeek = getISOWeekDetails(log.date);
+                if (logWeek.year === currentWeekInfo.year && logWeek.week === currentWeekInfo.week) {
+                    thisWeekHours += log.durationHours;
+                }
+                if (log.date.startsWith(currentMonthStr)) {
+                    thisMonthHours += log.durationHours;
+                }
+            });
+
+            const weeklyBalance = thisWeekHours - target;
+
+            document.getElementById('weeklyHoursWorked').textContent = `${thisWeekHours.toFixed(1)}h`;
+            const badge = document.getElementById('weeklyBadge');
+            const statusText = document.getElementById('weeklyStatusText');
+            const progressBar = document.getElementById('weeklyProgressBar');
+
+            const pct = Math.min(100, Math.max(0, (thisWeekHours / target) * 100));
+            progressBar.style.width = `${pct}%`;
+
+            if (weeklyBalance >= 0) {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200';
+                badge.textContent = `+${weeklyBalance.toFixed(1)}h a favor`;
+                statusText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span class="text-emerald-700">Has alcanzado tus ${target}h semanales</span>`;
+                progressBar.className = 'bg-brand-500 h-full rounded-full transition-all duration-500';
+            } else {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700 border border-red-200';
+                badge.textContent = `${weeklyBalance.toFixed(1)}h faltantes`;
+                statusText.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500"></i> <span class="text-red-600">Faltan ${Math.abs(weeklyBalance).toFixed(1)}h para la jornada semanal</span>`;
+                progressBar.className = 'bg-red-500 h-full rounded-full transition-all duration-500';
+            }
+
+            document.getElementById('statMonthWorked').textContent = `${thisMonthHours.toFixed(1)}h`;
+            document.getElementById('statMonthBalance').textContent = `En ${now.toLocaleDateString('es-ES', { month: 'long' })}`;
+            document.getElementById('statDaysCount').textContent = `${logs.length} días`;
+
+            renderWeeksBreakdown(target);
+        }
+
+        function renderWeeksBreakdown(target) {
+            const list = document.getElementById('weeksBreakdownList');
+            list.innerHTML = '';
+
+            const groups = {};
+            logs.forEach(log => {
+                const w = getISOWeekDetails(log.date);
+                const key = `${w.year}-W${String(w.week).padStart(2, '0')}`;
+                if (!groups[key]) groups[key] = { hours: 0, count: 0 };
+                groups[key].hours += log.durationHours;
+                groups[key].count += 1;
+            });
+
+            const sortedKeys = Object.keys(groups).sort().reverse();
+
+            if (sortedKeys.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Sin registros aún.</p>';
+                return;
+            }
+
+            sortedKeys.forEach(key => {
+                const item = groups[key];
+                const bal = item.hours - target;
+                const isPos = bal >= 0;
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs';
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-700">Semana ${key.split('-W')[1]} (${key.split('-W')[0]})</span>
+                        <div class="text-[10px] text-slate-400">${item.count} días registrados</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-slate-800">${item.hours.toFixed(1)}h</div>
+                        <div class="font-extrabold ${isPos ? 'text-emerald-600' : 'text-red-600'}">
+                            ${isPos ? '+' : ''}${bal.toFixed(1)}h
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // NUEVO MÓDULO: INFORMES (Semanal, Mensual, Anual)
+        function switchReportSubTab(type) {
+            currentReportSubTab = type;
+
+            ['weekly', 'monthly', 'annual'].forEach(t => {
+                const btn = document.getElementById(`rptBtn-${t}`);
+                if (t === type) {
+                    btn.className = 'flex-1 py-2 text-xs font-bold rounded-xl transition bg-slate-900 text-white shadow-sm';
+                } else {
+                    btn.className = 'flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500 hover:bg-slate-100';
+                }
+            });
+
+            renderReports();
+        }
+
+        function renderReports() {
+            const controlsArea = document.getElementById('reportControlsArea');
+            const outputArea = document.getElementById('reportOutputArea');
+            const target = userState.targetWeeklyHours || 9.0;
+
+            if (currentReportSubTab === 'weekly') {
+                // Selector Semana
+                const currentWeek = getISOWeekDetails(selectedReportDate.toISOString().split('T')[0]);
+                controlsArea.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-week text-brand-600"></i>
+                        <span class="text-xs font-bold text-slate-700">Semana ${currentWeek.week} - ${currentWeek.year}</span>
+                    </div>
+                    <input type="week" id="reportWeekPicker" value="${currentWeek.year}-W${String(currentWeek.week).padStart(2, '0')}" onchange="onReportWeekChange(event)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none">
+                `;
+
+                // Calculate Days Breakdown
+                const weekEntries = logs.filter(l => {
+                    const w = getISOWeekDetails(l.date);
+                    return w.year === currentWeek.year && w.week === currentWeek.week;
+                });
+
+                const totalHours = weekEntries.reduce((sum, l) => sum + l.durationHours, 0);
+                const balance = totalHours - target;
+
+                let html = `
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                        <span class="text-[10px] font-bold uppercase text-slate-600">Total Semana ${currentWeek.week}</span>
+                        <div class="text-3xl font-extrabold text-slate-800 my-1">${totalHours.toFixed(1)}h <span class="text-xs text-slate-600 font-normal">/ ${target}h</span></div>
+                        <div class="text-xs font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}">
+                            Balance: ${balance >= 0 ? '+' : ''}${balance.toFixed(1)}h
+                        </div>
+                    </div>
+                    <div class="space-y-2 pt-2">
+                        <h4 class="text-xs font-bold text-slate-600 uppercase">Detalle diario</h4>
+                `;
+
+                if (weekEntries.length === 0) {
+                    html += `<p class="text-xs text-slate-400 text-center py-4">No hay fichajes registrados en esta semana.</p>`;
+                } else {
+                    weekEntries.sort((a,b) => a.date.localeCompare(b.date)).forEach(e => {
+                        const d = new Date(e.date + 'T00:00:00');
+                        const dayName = d.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'short' });
+                        html += `
+                            <div class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-xs">
+                                <div>
+                                    <span class="font-bold text-slate-800 capitalize">${dayName}</span>
+                                    <div class="text-[10px] text-slate-600 font-mono">${e.startTime} - ${e.endTime} ${e.pauseMinutes ? `(-${e.pauseMinutes}m)` : ''}</div>
+                                    ${e.notes ? `<div class="text-[10px] text-slate-600 italic">${e.notes}</div>` : ''}
+                                </div>
+                                <span class="font-extrabold text-slate-800">${e.durationHours.toFixed(1)}h</span>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div>`;
+                outputArea.innerHTML = html;
+
+            } else if (currentReportSubTab === 'monthly') {
+                // Selector Mes
+                const year = selectedReportDate.getFullYear();
+                const month = selectedReportDate.getMonth();
+                const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+                controlsArea.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-days text-brand-600"></i>
+                        <span class="text-xs font-bold text-slate-700">${monthNames[month]} ${year}</span>
+                    </div>
+                    <input type="month" id="reportMonthPicker" value="${monthStr}" onchange="onReportMonthChange(event)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none">
+                `;
+
+                const monthEntries = logs.filter(l => l.date.startsWith(monthStr));
+                const totalHours = monthEntries.reduce((sum, l) => sum + l.durationHours, 0);
+
+                // Group by Week in Month
+                const weeksMap = {};
+                monthEntries.forEach(e => {
+                    const w = getISOWeekDetails(e.date);
+                    const weekKey = `Semana ${w.week}`;
+                    if (!weeksMap[weekKey]) weeksMap[weekKey] = { hours: 0, entries: [] };
+                    weeksMap[weekKey].hours += e.durationHours;
+                    weeksMap[weekKey].entries.push(e);
+                });
+
+                let html = `
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                        <span class="text-[10px] font-bold uppercase text-slate-600">Resumen Mensual</span>
+                        <div class="text-3xl font-extrabold text-slate-800 my-1">${totalHours.toFixed(1)}h</div>
+                        <div class="text-xs text-slate-600 font-medium">${monthEntries.length} días de trabajo registrados</div>
+                    </div>
+                    <div class="space-y-2 pt-2">
+                        <h4 class="text-xs font-bold text-slate-600 uppercase">Desglose por semanas</h4>
+                `;
+
+                const weekKeys = Object.keys(weeksMap).sort();
+                if (weekKeys.length === 0) {
+                    html += `<p class="text-xs text-slate-400 text-center py-4">No hay fichajes en este mes.</p>`;
+                } else {
+                    weekKeys.forEach(wk => {
+                        const wData = weeksMap[wk];
+                        const wBal = wData.hours - target;
+                        html += `
+                            <div class="p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-xs space-y-1">
+                                <div class="flex justify-between items-center font-bold">
+                                    <span class="text-slate-800">${wk}</span>
+                                    <span class="text-slate-800">${wData.hours.toFixed(1)}h <span class="text-[10px] ${wBal>=0?'text-emerald-600':'text-red-600'}">(${wBal>=0?'+':''}${wBal.toFixed(1)}h)</span></span>
+                                </div>
+                                <div class="text-[10px] text-slate-600">${wData.entries.length} jornadas trabajadas</div>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div>`;
+                outputArea.innerHTML = html;
+
+            } else if (currentReportSubTab === 'annual') {
+                // Selector Año
+                const year = selectedReportDate.getFullYear();
+
+                controlsArea.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar text-brand-600"></i>
+                        <span class="text-xs font-bold text-slate-700">Año ${year}</span>
+                    </div>
+                    <select onchange="onReportYearChange(event)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none">
+                        ${[year+1, year, year-1, year-2].map(y => `<option value="${y}" ${y===year?'selected':''}>${y}</option>`).join('')}
+                    </select>
+                `;
+
+                const yearEntries = logs.filter(l => l.date.startsWith(String(year)));
+                const totalHours = yearEntries.reduce((sum, l) => sum + l.durationHours, 0);
+
+                // Group by Month
+                const monthsMap = {};
+                for (let m = 0; m < 12; m++) {
+                    const key = `${year}-${String(m + 1).padStart(2, '0')}`;
+                    monthsMap[key] = { monthIndex: m, name: monthNames[m], hours: 0, entriesCount: 0 };
+                }
+
+                yearEntries.forEach(e => {
+                    const mKey = e.date.substring(0, 7);
+                    if (monthsMap[mKey]) {
+                        monthsMap[mKey].hours += e.durationHours;
+                        monthsMap[mKey].entriesCount += 1;
+                    }
+                });
+
+                let html = `
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                        <span class="text-[10px] font-bold uppercase text-slate-600">Resumen Anual ${year}</span>
+                        <div class="text-3xl font-extrabold text-slate-800 my-1">${totalHours.toFixed(1)}h</div>
+                        <div class="text-xs text-slate-600 font-medium">${yearEntries.length} días laborados en el año</div>
+                    </div>
+                    <div class="space-y-2 pt-2">
+                        <h4 class="text-xs font-bold text-slate-600 uppercase">Desglose mensual</h4>
+                        <div class="grid grid-cols-1 gap-2">
+                `;
+
+                Object.keys(monthsMap).forEach(mKey => {
+                    const mData = monthsMap[mKey];
+                    if (mData.hours > 0) {
+                        html += `
+                            <div class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-xs">
+                                <div>
+                                    <span class="font-bold text-slate-800">${mData.name}</span>
+                                    <div class="text-[10px] text-slate-600">${mData.entriesCount} días</div>
+                                </div>
+                                <span class="font-extrabold text-slate-800 text-sm">${mData.hours.toFixed(1)}h</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `</div></div>`;
+                outputArea.innerHTML = html;
+            }
+        }
+
+        function onReportWeekChange(e) {
+            if (!e.target.value) return;
+            const [y, w] = e.target.value.split('-W');
+            // Estimate a date in that ISO week
+            const simple = new Date(parseInt(y), 0, 1 + (parseInt(w) - 1) * 7);
+            selectedReportDate = simple;
+            renderReports();
+        }
+
+        function onReportMonthChange(e) {
+            if (!e.target.value) return;
+            const [y, m] = e.target.value.split('-');
+            selectedReportDate = new Date(parseInt(y), parseInt(m) - 1, 1);
+            renderReports();
+        }
+
+        function onReportYearChange(e) {
+            selectedReportDate = new Date(parseInt(e.target.value), 0, 1);
+            renderReports();
+        }
+
+        // WhatsApp & Export Formatting for Reports
+        function generateActiveReportText() {
+            const target = userState.targetWeeklyHours || 9.0;
+            let msg = `📋 *Informe de Jornada Laboral*\n`;
+            msg += `👤 *Empleado:* ${userState.name}\n`;
+            msg += `💼 *Puesto:* ${userState.role} (${userState.company})\n`;
+            msg += `----------------------------------\n`;
+
+            if (currentReportSubTab === 'weekly') {
+                const currentWeek = getISOWeekDetails(selectedReportDate.toISOString().split('T')[0]);
+                const weekEntries = logs.filter(l => {
+                    const w = getISOWeekDetails(l.date);
+                    return w.year === currentWeek.year && w.week === currentWeek.week;
+                });
+                const totalHours = weekEntries.reduce((sum, l) => sum + l.durationHours, 0);
+                const balance = totalHours - target;
+
+                msg += `📅 *Informe Semanal (Semana ${currentWeek.week} - ${currentWeek.year})*\n`;
+                msg += `⏱️ *Horas Trabajadas:* ${totalHours.toFixed(1)}h / ${target}h contratadas\n`;
+                msg += `⚖️ *Balance Semanal:* ${balance >= 0 ? '+' : ''}${balance.toFixed(1)}h\n\n`;
+                msg += `*Detalle diario:*\n`;
+
+                if (weekEntries.length === 0) {
+                    msg += `_Sin registros en esta semana_\n`;
+                } else {
+                    weekEntries.sort((a,b) => a.date.localeCompare(b.date)).forEach(e => {
+                        msg += `• ${e.date}: ${e.startTime} - ${e.endTime} (${e.durationHours}h) ${e.notes ? `[${e.notes}]` : ''}\n`;
+                    });
+                }
+
+            } else if (currentReportSubTab === 'monthly') {
+                const year = selectedReportDate.getFullYear();
+                const month = selectedReportDate.getMonth();
+                const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const monthEntries = logs.filter(l => l.date.startsWith(monthStr));
+                const totalHours = monthEntries.reduce((sum, l) => sum + l.durationHours, 0);
+
+                msg += `📅 *Informe Mensual (${monthNames[month]} ${year})*\n`;
+                msg += `⏱️ *Total Horas Mes:* ${totalHours.toFixed(1)}h\n`;
+                msg += `📊 *Días Trabajados:* ${monthEntries.length} días\n\n`;
+                msg += `*Desglose por Semanas:*\n`;
+
+                const weeksMap = {};
+                monthEntries.forEach(e => {
+                    const w = getISOWeekDetails(e.date);
+                    const weekKey = `Semana ${w.week}`;
+                    if (!weeksMap[weekKey]) weeksMap[weekKey] = 0;
+                    weeksMap[weekKey] += e.durationHours;
+                });
+
+                const keys = Object.keys(weeksMap).sort();
+                if (keys.length === 0) {
+                    msg += `_Sin registros en este mes_\n`;
+                } else {
+                    keys.forEach(k => {
+                        msg += `• ${k}: ${weeksMap[k].toFixed(1)}h (Balance: ${(weeksMap[k] - target) >= 0 ? '+' : ''}${(weeksMap[k] - target).toFixed(1)}h)\n`;
+                    });
+                }
+
+            } else if (currentReportSubTab === 'annual') {
+                const year = selectedReportDate.getFullYear();
+                const yearEntries = logs.filter(l => l.date.startsWith(String(year)));
+                const totalHours = yearEntries.reduce((sum, l) => sum + l.durationHours, 0);
+
+                msg += `📅 *Informe Anual (Año ${year})*\n`;
+                msg += `⏱️ *Total Horas Año:* ${totalHours.toFixed(1)}h\n`;
+                msg += `📊 *Jornadas Totales:* ${yearEntries.length} días\n\n`;
+                msg += `*Desglose por Meses:*\n`;
+
+                for (let m = 0; m < 12; m++) {
+                    const mKey = `${year}-${String(m + 1).padStart(2, '0')}`;
+                    const mHours = logs.filter(l => l.date.startsWith(mKey)).reduce((sum, l) => sum + l.durationHours, 0);
+                    if (mHours > 0) {
+                        msg += `• ${monthNames[m]}: ${mHours.toFixed(1)}h\n`;
+                    }
+                }
+            }
+
+            msg += `\n_Generado automáticamente con Registro de Jornada_ 🚀`;
+            return msg;
+        }
+
+        function shareActiveReportWhatsApp() {
+            const text = generateActiveReportText();
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function copyActiveReportToClipboard() {
+            const text = generateActiveReportText();
+            navigator.clipboard.writeText(text).then(() => {
+                alert('¡Informe copiado al portapapeles!');
+            }).catch(() => {
+                alert('No se pudo copiar automáticamente. Copia el texto manualmente.');
+            });
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const filter = document.getElementById('historySearch').value.toLowerCase();
+            list.innerHTML = '';
+
+            const filtered = logs.filter(l => 
+                l.date.includes(filter) || 
+                (l.notes && l.notes.toLowerCase().includes(filter))
+            );
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8 glass-card rounded-2xl">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-xs text-slate-500 font-medium">No se encontraron fichajes en el historial</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+            filtered.forEach(log => {
+                const dateObj = new Date(log.date + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-4 transition hover:border-slate-300 relative';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800 capitalize">${formattedDate}</span>
+                            <div class="text-xs text-slate-500 font-mono mt-0.5">
+                                <i class="fa-regular fa-clock text-brand-600 mr-1"></i>${log.startTime} - ${log.endTime}
+                                ${log.pauseMinutes ? `<span class="text-[10px] text-amber-600 ml-1">(-${log.pauseMinutes}m pausa)</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-extrabold text-slate-800">${log.durationHours.toFixed(1)}h</span>
+                        </div>
+                    </div>
+
+                    ${log.notes ? `
+                        <div class="bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5 text-xs text-slate-600 mb-3 flex items-start space-x-1.5">
+                            <i class="fa-regular fa-comment-dots text-brand-600 mt-0.5"></i>
+                            <span>${log.notes}</span>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-2 mt-1">
+                        <button onclick="editLogEntry('${log.id}')" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center space-x-1 transition">
+                            <i class="fa-solid fa-pen text-brand-600"></i>
+                            <span>Editar</span>
+                        </button>
+                        <button onclick="deleteLogEntry('${log.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Navigation Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-brand-600', 'font-bold');
+                el.classList.add('text-slate-400', 'font-medium');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabName}`);
+            activeNav.classList.remove('text-slate-400', 'font-medium');
+            activeNav.classList.add('text-brand-600', 'font-bold');
+
+            if (tabName === 'reports') renderReports();
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Backup Export / Import
+        function exportBackupJSON() {
+            const data = {
+                user: userState,
+                logs: logs,
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_jornada_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importBackupJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.logs && Array.isArray(imported.logs)) {
+                        logs = imported.logs;
+                        saveLogs();
+                    }
+                    if (imported.user) {
+                        userState = imported.user;
+                        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(userState));
+                        loadUserData();
+                    }
+                    alert('¡Copia de seguridad restaurada correctamente!');
+                } catch (err) {
+                    alert('Error al leer el archivo de copia de seguridad JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
