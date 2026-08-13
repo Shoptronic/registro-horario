@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf.js Library for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -247,7 +249,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: INFORMES (NUEVO MÓDULO) -->
+        <!-- TAB 3: INFORMES (MÓDULO DE INFORMES + PDF) -->
         <section id="tab-reports" class="tab-content hidden space-y-4">
             <!-- Report Type Sub-Navigation -->
             <div class="glass-card rounded-2xl p-1.5 flex space-x-1 shadow-sm">
@@ -255,6 +257,12 @@
                 <button onclick="switchReportSubTab('monthly')" id="rptBtn-monthly" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500 hover:bg-slate-100">Mensual</button>
                 <button onclick="switchReportSubTab('annual')" id="rptBtn-annual" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500 hover:bg-slate-100">Anual</button>
             </div>
+
+            <!-- Main Export Button (PDF Executive) -->
+            <button onclick="exportProfessionalPDF()" class="w-full py-3.5 px-4 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 border border-slate-700">
+                <i class="fa-solid fa-file-pdf text-red-400 text-base"></i>
+                <span>DESCARGAR INFORME PDF COMPLETO Y DETALLADO</span>
+            </button>
 
             <!-- Report Card Container -->
             <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
@@ -457,6 +465,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Hidden PDF Render Container -->
+    <div id="pdfTemplateHiddenContainer" class="hidden"></div>
 
     <!-- Application JavaScript Logic -->
     <script>
@@ -1018,7 +1029,7 @@
             });
         }
 
-        // NUEVO MÓDULO: INFORMES (Semanal, Mensual, Anual)
+        // MÓDULO INFORMES (Semanal, Mensual, Anual)
         function switchReportSubTab(type) {
             currentReportSubTab = type;
 
@@ -1040,7 +1051,6 @@
             const target = userState.targetWeeklyHours || 9.0;
 
             if (currentReportSubTab === 'weekly') {
-                // Selector Semana
                 const currentWeek = getISOWeekDetails(selectedReportDate.toISOString().split('T')[0]);
                 controlsArea.innerHTML = `
                     <div class="flex items-center space-x-2">
@@ -1050,7 +1060,6 @@
                     <input type="week" id="reportWeekPicker" value="${currentWeek.year}-W${String(currentWeek.week).padStart(2, '0')}" onchange="onReportWeekChange(event)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none">
                 `;
 
-                // Calculate Days Breakdown
                 const weekEntries = logs.filter(l => {
                     const w = getISOWeekDetails(l.date);
                     return w.year === currentWeek.year && w.week === currentWeek.week;
@@ -1093,7 +1102,6 @@
                 outputArea.innerHTML = html;
 
             } else if (currentReportSubTab === 'monthly') {
-                // Selector Mes
                 const year = selectedReportDate.getFullYear();
                 const month = selectedReportDate.getMonth();
                 const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -1109,7 +1117,6 @@
                 const monthEntries = logs.filter(l => l.date.startsWith(monthStr));
                 const totalHours = monthEntries.reduce((sum, l) => sum + l.durationHours, 0);
 
-                // Group by Week in Month
                 const weeksMap = {};
                 monthEntries.forEach(e => {
                     const w = getISOWeekDetails(e.date);
@@ -1151,7 +1158,6 @@
                 outputArea.innerHTML = html;
 
             } else if (currentReportSubTab === 'annual') {
-                // Selector Año
                 const year = selectedReportDate.getFullYear();
 
                 controlsArea.innerHTML = `
@@ -1167,7 +1173,6 @@
                 const yearEntries = logs.filter(l => l.date.startsWith(String(year)));
                 const totalHours = yearEntries.reduce((sum, l) => sum + l.durationHours, 0);
 
-                // Group by Month
                 const monthsMap = {};
                 for (let m = 0; m < 12; m++) {
                     const key = `${year}-${String(m + 1).padStart(2, '0')}`;
@@ -1216,7 +1221,6 @@
         function onReportWeekChange(e) {
             if (!e.target.value) return;
             const [y, w] = e.target.value.split('-W');
-            // Estimate a date in that ISO week
             const simple = new Date(parseInt(y), 0, 1 + (parseInt(w) - 1) * 7);
             selectedReportDate = simple;
             renderReports();
@@ -1234,7 +1238,7 @@
             renderReports();
         }
 
-        // WhatsApp & Export Formatting for Reports
+        // WhatsApp Text Formatting
         function generateActiveReportText() {
             const target = userState.targetWeeklyHours || 9.0;
             let msg = `📋 *Informe de Jornada Laboral*\n`;
@@ -1328,6 +1332,347 @@
                 alert('¡Informe copiado al portapapeles!');
             }).catch(() => {
                 alert('No se pudo copiar automáticamente. Copia el texto manualmente.');
+            });
+        }
+
+        // GENERADOR DE PDF PROFESIONAL EJECUTIVO (VERSIÓN CORREGIDA SIN CORTES Y CON DESGLOSE JERÁRQUICO)
+        function exportProfessionalPDF() {
+            const target = userState.targetWeeklyHours || 9.0;
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            // Contextual Filtering
+            let relevantLogs = [];
+            let reportPeriodTitle = '';
+
+            if (currentReportSubTab === 'weekly') {
+                const currentWeek = getISOWeekDetails(selectedReportDate.toISOString().split('T')[0]);
+                reportPeriodTitle = `INFORME COMPLETO - SEMANA ${currentWeek.week} (${currentWeek.year})`;
+                relevantLogs = logs.filter(l => {
+                    const w = getISOWeekDetails(l.date);
+                    return w.year === currentWeek.year && w.week === currentWeek.week;
+                });
+            } else if (currentReportSubTab === 'monthly') {
+                const year = selectedReportDate.getFullYear();
+                const month = selectedReportDate.getMonth();
+                const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+                reportPeriodTitle = `INFORME COMPLETO - ${monthNames[month].toUpperCase()} ${year}`;
+                relevantLogs = logs.filter(l => l.date.startsWith(monthStr));
+            } else if (currentReportSubTab === 'annual') {
+                const year = selectedReportDate.getFullYear();
+                reportPeriodTitle = `INFORME ANUAL CONSOLIDADO - AÑO ${year}`;
+                relevantLogs = logs.filter(l => l.date.startsWith(String(year)));
+            }
+
+            relevantLogs.sort((a,b) => a.date.localeCompare(b.date));
+
+            // Totals Calculation
+            const totalHours = relevantLogs.reduce((sum, l) => sum + l.durationHours, 0);
+            const totalDays = relevantLogs.length;
+            const avgHours = totalDays > 0 ? (totalHours / totalDays).toFixed(2) : '0.00';
+
+            // Hierarchical Groupings (Years, Months, Weeks)
+            const yearsGroup = {};
+            const monthsGroup = {};
+            const weeksGroup = {};
+
+            relevantLogs.forEach(log => {
+                const y = log.date.substring(0, 4);
+                const m = log.date.substring(0, 7);
+                const wObj = getISOWeekDetails(log.date);
+                const wKey = `${wObj.year}-W${String(wObj.week).padStart(2, '0')}`;
+
+                // Year Grouping
+                if (!yearsGroup[y]) yearsGroup[y] = { hours: 0, days: 0 };
+                yearsGroup[y].hours += log.durationHours;
+                yearsGroup[y].days += 1;
+
+                // Month Grouping
+                if (!monthsGroup[m]) {
+                    const mIdx = parseInt(log.date.substring(5, 7)) - 1;
+                    monthsGroup[m] = { name: `${monthNames[mIdx]} ${y}`, hours: 0, days: 0 };
+                }
+                monthsGroup[m].hours += log.durationHours;
+                monthsGroup[m].days += 1;
+
+                // Week Grouping
+                if (!weeksGroup[wKey]) {
+                    weeksGroup[wKey] = { weekNum: wObj.week, year: wObj.year, hours: 0, days: 0 };
+                }
+                weeksGroup[wKey].hours += log.durationHours;
+                weeksGroup[wKey].days += 1;
+            });
+
+            // Construction of PDF Layout (Optimized for A4 Vertical)
+            let pdfHTML = `
+                <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #0f172a; padding: 20px; background: #ffffff; width: 700px; box-sizing: border-box; font-size: 11px; line-height: 1.4;">
+                    
+                    <!-- ENCABEZADO EJECUTIVO -->
+                    <div style="border-bottom: 3px solid #059669; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INFORME OFICIAL DE JORNADA LABORAL</h1>
+                            <div style="font-size: 11px; color: #059669; font-weight: 700; margin-top: 3px;">${reportPeriodTitle}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 9px; color: #64748b; font-weight: 700;">FECHA EMISIÓN</div>
+                            <div style="font-size: 11px; font-weight: 800; color: #0f172a;">${dateStr}</div>
+                        </div>
+                    </div>
+
+                    <!-- TARJETA PERFIL EMPLEADO Y EMPRESA -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; page-break-inside: avoid;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            ${userState.avatar 
+                                ? `<img src="${userState.avatar}" style="width: 48px; height: 48px; border-radius: 8px; object-fit: cover; border: 2px solid #10b981;">` 
+                                : `<div style="width: 48px; height: 48px; border-radius: 8px; background: #059669; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">${userState.name.charAt(0)}</div>`
+                            }
+                            <div>
+                                <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${userState.name}</div>
+                                <div style="font-size: 10px; color: #475569; font-weight: 600;">
+                                    <strong>Puesto:</strong> ${userState.role} &nbsp;|&nbsp; <strong>Empresa:</strong> ${userState.company}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: right; border-left: 2px solid #cbd5e1; padding-left: 14px;">
+                            <div style="font-size: 8px; color: #64748b; font-weight: 700; text-transform: uppercase;">Jornada Contratada</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #059669;">${target} hrs / sem</div>
+                        </div>
+                    </div>
+
+                    <!-- TARJETAS DE INDICADORES / KPIS -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; page-break-inside: avoid;">
+                        <div style="flex: 1; background: #f1f5f9; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Horas Netas</div>
+                            <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">${totalHours.toFixed(1)} h</div>
+                        </div>
+                        <div style="flex: 1; background: #f1f5f9; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase;">Días Trabajos</div>
+                            <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">${totalDays} días</div>
+                        </div>
+                        <div style="flex: 1; background: #f1f5f9; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase;">Promedio por Día</div>
+                            <div style="font-size: 16px; font-weight: 800; color: #059669; margin-top: 2px;">${avgHours} h</div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 1: RESUMEN ACUMULADO POR AÑOS -->
+                    <div style="margin-bottom: 18px; page-break-inside: avoid;">
+                        <div style="font-size: 11px; font-weight: 800; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase;">
+                            1. RESUMEN GENERAL POR AÑOS
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+                            <thead>
+                                <tr style="background: #1e293b; color: white;">
+                                    <th style="padding: 6px 8px; text-align: left;">AÑO</th>
+                                    <th style="padding: 6px 8px; text-align: center;">DÍAS TRABAJADOS</th>
+                                    <th style="padding: 6px 8px; text-align: right;">HORAS TOTALES</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            const yearKeys = Object.keys(yearsGroup).sort().reverse();
+            if (yearKeys.length === 0) {
+                pdfHTML += `<tr><td colspan="3" style="padding: 6px; text-align: center; color: #94a3b8;">Sin datos en el período</td></tr>`;
+            } else {
+                yearKeys.forEach(yk => {
+                    pdfHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                            <td style="padding: 6px 8px; font-weight: 700;">${yk}</td>
+                            <td style="padding: 6px 8px; text-align: center;">${yearsGroup[yk].days} días</td>
+                            <td style="padding: 6px 8px; text-align: right; font-weight: 800; color: #059669;">${yearsGroup[yk].hours.toFixed(1)} h</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            pdfHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- SECCIÓN 2: DESGLOSE SUB-TOTALES POR MESES -->
+                    <div style="margin-bottom: 18px; page-break-inside: avoid;">
+                        <div style="font-size: 11px; font-weight: 800; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase;">
+                            2. SUB-TOTALES ACUMULADOS POR MESES
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+                            <thead>
+                                <tr style="background: #1e293b; color: white;">
+                                    <th style="padding: 6px 8px; text-align: left;">MES / AÑO</th>
+                                    <th style="padding: 6px 8px; text-align: center;">DÍAS REGISTRADOS</th>
+                                    <th style="padding: 6px 8px; text-align: right;">HORAS NETAS MES</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            const monthKeys = Object.keys(monthsGroup).sort().reverse();
+            if (monthKeys.length === 0) {
+                pdfHTML += `<tr><td colspan="3" style="padding: 6px; text-align: center; color: #94a3b8;">Sin datos acumulados por mes</td></tr>`;
+            } else {
+                monthKeys.forEach(mk => {
+                    pdfHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                            <td style="padding: 6px 8px; font-weight: 700;">${monthsGroup[mk].name}</td>
+                            <td style="padding: 6px 8px; text-align: center;">${monthsGroup[mk].days} días</td>
+                            <td style="padding: 6px 8px; text-align: right; font-weight: 800; color: #0f172a;">${monthsGroup[mk].hours.toFixed(1)} h</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            pdfHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- SECCIÓN 3: DESGLOSE Y BALANCE POR SEMANAS -->
+                    <div style="margin-bottom: 18px; page-break-inside: avoid;">
+                        <div style="font-size: 11px; font-weight: 800; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase;">
+                            3. DESGLOSE Y BALANCE DE JORNADA POR SEMANAS
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+                            <thead>
+                                <tr style="background: #1e293b; color: white;">
+                                    <th style="padding: 6px 8px; text-align: left;">SEMANA</th>
+                                    <th style="padding: 6px 8px; text-align: center;">DÍAS</th>
+                                    <th style="padding: 6px 8px; text-align: right;">TRABAJADO</th>
+                                    <th style="padding: 6px 8px; text-align: right;">CONTRATADO</th>
+                                    <th style="padding: 6px 8px; text-align: right;">BALANCE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            const weekKeys = Object.keys(weeksGroup).sort().reverse();
+            if (weekKeys.length === 0) {
+                pdfHTML += `<tr><td colspan="5" style="padding: 6px; text-align: center; color: #94a3b8;">Sin registros de semanas</td></tr>`;
+            } else {
+                weekKeys.forEach(wk => {
+                    const wData = weeksGroup[wk];
+                    const balance = wData.hours - target;
+                    const isPos = balance >= 0;
+                    pdfHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                            <td style="padding: 6px 8px; font-weight: 700;">Semana ${wData.weekNum} (${wData.year})</td>
+                            <td style="padding: 6px 8px; text-align: center;">${wData.days} d</td>
+                            <td style="padding: 6px 8px; text-align: right; font-weight: 700;">${wData.hours.toFixed(1)} h</td>
+                            <td style="padding: 6px 8px; text-align: right; color: #64748b;">${target.toFixed(1)} h</td>
+                            <td style="padding: 6px 8px; text-align: right; font-weight: 800; color: ${isPos ? '#059669' : '#dc2626'};">
+                                ${isPos ? '+' : ''}${balance.toFixed(1)} h
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            pdfHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- SECCIÓN 4: TABLA DETALLADA DÍA A DÍA -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 11px; font-weight: 800; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase;">
+                            4. REGISTRO MINUCIOSO DÍA POR DÍA
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+                            <thead>
+                                <tr style="background: #0f172a; color: #ffffff;">
+                                    <th style="padding: 6px 6px; text-align: left;">FECHA</th>
+                                    <th style="padding: 6px 4px; text-align: center;">ENTRADA</th>
+                                    <th style="padding: 6px 4px; text-align: center;">SALIDA</th>
+                                    <th style="padding: 6px 4px; text-align: center;">PAUSA</th>
+                                    <th style="padding: 6px 6px; text-align: right;">HORAS NETAS</th>
+                                    <th style="padding: 6px 6px; text-align: left;">NOTAS / COMENTARIOS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            if (relevantLogs.length === 0) {
+                pdfHTML += `
+                    <tr>
+                        <td colspan="6" style="padding: 12px; text-align: center; color: #94a3b8; font-style: italic;">
+                            No se han encontrado registros individuales en este período.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                relevantLogs.forEach((item, index) => {
+                    const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    const d = new Date(item.date + 'T00:00:00');
+                    const dayFormatted = d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                    pdfHTML += `
+                        <tr style="background: ${bgColor}; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
+                            <td style="padding: 5px 6px; font-weight: 700; color: #334155; capitalize">${dayFormatted}</td>
+                            <td style="padding: 5px 4px; text-align: center; font-family: monospace;">${item.startTime}</td>
+                            <td style="padding: 5px 4px; text-align: center; font-family: monospace;">${item.endTime}</td>
+                            <td style="padding: 5px 4px; text-align: center; color: #64748b;">${item.pauseMinutes ? item.pauseMinutes + ' m' : '-'}</td>
+                            <td style="padding: 5px 6px; text-align: right; font-weight: 800; color: #0f172a;">${item.durationHours.toFixed(1)} h</td>
+                            <td style="padding: 5px 6px; color: #475569; font-style: italic;">${item.notes || ''}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            pdfHTML += `
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #e2e8f0; font-weight: 800; page-break-inside: avoid;">
+                                    <td colspan="4" style="padding: 6px 6px; text-align: right; color: #0f172a;">TOTAL HORAS ACUMULADAS:</td>
+                                    <td style="padding: 6px 6px; text-align: right; font-size: 10px; color: #059669;">${totalHours.toFixed(1)} h</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- BLOQUE OFICIAL DE FIRMAS Y CONFORMIDAD -->
+                    <div style="margin-top: 35px; padding-top: 10px; display: flex; justify-content: space-between; gap: 30px; page-break-inside: avoid;">
+                        <div style="flex: 1; border-top: 1.5px solid #94a3b8; padding-top: 6px; text-align: center;">
+                            <div style="font-size: 9.5px; font-weight: 700; color: #334155;">Firma del Empleado</div>
+                            <div style="font-size: 8.5px; color: #64748b; margin-top: 2px;">${userState.name}</div>
+                        </div>
+                        <div style="flex: 1; border-top: 1.5px solid #94a3b8; padding-top: 6px; text-align: center;">
+                            <div style="font-size: 9.5px; font-weight: 700; color: #334155;">Firma y Sello de la Empresa / Gerencia</div>
+                            <div style="font-size: 8.5px; color: #64748b; margin-top: 2px;">${userState.company}</div>
+                        </div>
+                    </div>
+
+                    <!-- PIE DE PÁGINA NORMATIVO -->
+                    <div style="margin-top: 25px; border-top: 1px dashed #cbd5e1; padding-top: 8px; text-align: center; font-size: 7.5px; color: #94a3b8; page-break-inside: avoid;">
+                        Documento justificativo de registro diario de jornada conforme a la legislación vigente. Generado por la aplicación de Registro Laboral.
+                    </div>
+                </div>
+            `;
+
+            // Insert temporarily into container
+            const container = document.getElementById('pdfTemplateHiddenContainer');
+            container.innerHTML = pdfHTML;
+            container.classList.remove('hidden');
+
+            // Advanced Anti-Clipping PDF Options
+            const options = {
+                margin: [8, 8, 8, 8],
+                filename: `Informe_Jornada_${userState.name.replace(/\s+/g, '_')}_${now.toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, logging: false, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // Render PDF with html2pdf library
+            html2pdf().set(options).from(container.children[0]).save().then(() => {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }).catch(err => {
+                console.error('Error generando PDF:', err);
+                alert('Ocurrió un error al generar el archivo PDF.');
+                container.classList.add('hidden');
             });
         }
 
